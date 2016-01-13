@@ -79,6 +79,7 @@ protected:
     unsigned int m_uasMode; ///< Current uas mode
     bool m_engineOn;        ///< Engine state
 
+
 private:
     Ui::uasControl ui;
 

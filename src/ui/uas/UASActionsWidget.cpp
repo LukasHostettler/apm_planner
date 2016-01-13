@@ -4,6 +4,7 @@
 #include "UASActionsWidget.h"
 #include "APMShortcutModesDialog.h"
 #include "PreFlightCalibrationDialog.h"
+#include "chooseactiondialog.h"
 
 #include <QMessageBox>
 #include <UAS.h>
@@ -990,3 +991,13 @@ void UASActionsWidget::showPreflightCalibrationDialog()
 }
 
 
+
+void UASActionsWidget::on_debugBtn_clicked()
+{
+    ChooseActionDialog *dialog = new ChooseActionDialog(this,m_uas);
+    dialog->m_uas=m_uas;
+    dialog->setWindowModality(Qt::NonModal);
+    dialog->show();
+    QLOG_DEBUG() << "DebugBtn_click";
+
+}

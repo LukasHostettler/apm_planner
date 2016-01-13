@@ -37,6 +37,8 @@ private slots:
                           int parameterId, QString parameterName, QVariant value);
     void heartbeatReceived(UASInterface*);
 
+    void on_debugBtn_clicked();
+
 private:
     void setupApmCopterModes();
     void setupApmPlaneModes();
