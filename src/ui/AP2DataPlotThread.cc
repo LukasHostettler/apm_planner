@@ -157,6 +157,7 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                         if (!typeToLengthMap.contains(type))
                         {
                             QLOG_DEBUG() << "AP2DataPlotThread::run(): No entry in typeToLengthMap for type:" << type;
+                            m_errorCount++;
                             break;
                         }
                         if (i+3+typeToLengthMap.value(type) >= block.size())
@@ -174,12 +175,13 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                         QString name = typeToNameMap.value(type);
                         if (tables.contains(name))
                         {
-                            QString linetoemit = typeToNameMap.value(type);
+                            //QString linetoemit = typeToNameMap.value(type);
                             index++;
                             QList<QPair<QString,QVariant> > valuepairlist;
                             QString formatstr = typeToFormatMap.value(type);
                             QString labelstr = typeToLabelMap.value(type);
                             QStringList labelstrsplit = labelstr.split(",");
+                            bool noCorruptDataFound = true;
 
                             for (int j=0;j<formatstr.size();j++)
                             {
@@ -188,50 +190,52 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                                 {
                                     qint8 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<qint8>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'B') //uint8_t
                                 {
                                     quint8 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<quint8>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'h') //int16_t
                                 {
                                     qint16 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<qint16>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'H') //uint16_t
                                 {
                                     quint16 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<quint16>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'i') //int32_t
                                 {
                                     qint32 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<qint32>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'I') //uint32_t
                                 {
                                     quint32 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<quint32>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'f') //float
                                 {
                                     float f;
                                     packetstream >> f;
-                                    linetoemit += "," + QString::number(f,'f',4);
-                                    valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),f));
+                                    if (f != f) // This tests for not a number
+                                    {
+                                        QLOG_WARN() << "Corrupted log data found - Graphing may not work as expected for data of type" << name;
+                                        noCorruptDataFound = false;
+                                        m_errorCount++;
+                                    }
+                                    else
+                                    {
+                                        valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),f));
+                                    }
                                 }
                                 else if (typeCode == 'n') //char(4)
                                 {
@@ -246,7 +250,6 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                                             val += static_cast<char>(ch);
                                         }
                                     }
-                                    linetoemit += "," + val;
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'N') //char(16)
@@ -261,7 +264,6 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                                             val += static_cast<char>(ch);
                                         }
                                     }
-                                    linetoemit += "," + val;
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'Z') //char(64)
@@ -276,35 +278,30 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                                             val += static_cast<char>(ch);
                                         }
                                     }
-                                    linetoemit += "," + val;
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'c') //int16_t * 100
                                 {
                                     qint16 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number((val/100.0) , 'f', 4);
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val / 100.0));
                                 }
                                 else if (typeCode == 'C') //uint16_t * 100
                                 {
                                     quint16 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number((val/100.0) , 'f', 4);
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val / 100.0));
                                 }
                                 else if (typeCode == 'e') //int32_t * 100
                                 {
                                     qint32 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number((val/100.0) , 'f', 4);
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val / 100.0));
                                 }
                                 else if (typeCode == 'E') //uint32_t * 100
                                 {
                                     quint32 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number((val/100.0) , 'f', 4);
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val / 100.0));
                                 }
                                 else if (typeCode == 'L') //uint32_t GPS Lon/Lat * 10000000
@@ -312,37 +309,34 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                                     qint32 val;
                                     packetstream >> val;
                                     double latLonValue = val/1e7;
-                                    linetoemit += "," + QString::number(latLonValue,'f',6);
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val / 10000000.0));
                                 }
                                 else if (typeCode == 'M')
                                 {
                                     qint8 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<qint8>(val));
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'q')
                                 {
                                     qint64 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<qint64>(val));;
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else if (typeCode == 'Q')
                                 {
                                     quint64 val;
                                     packetstream >> val;
-                                    linetoemit += "," + QString::number(static_cast<quint64>(val));;
                                     valuepairlist.append(QPair<QString,QVariant>(labelstrsplit.at(j),val));
                                 }
                                 else
                                 {
                                     //Unknown!
                                     QLOG_DEBUG() << "AP2DataPlotThread::run(): ERROR UNKNOWN DATA TYPE" << typeCode;
+                                    m_errorCount++;
                                 }
                             }
-                            if (valuepairlist.size() > 1)
+                            if (noCorruptDataFound && (valuepairlist.size() >= 1))
                             {
                                 if (!m_dataModel->addRow(name,valuepairlist,index))
                                 {
@@ -355,15 +349,26 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
 
                             if (type == paramtype && m_loadedLogType == MAV_TYPE_GENERIC)
                             {
-                                if (linetoemit.contains("RATE_RLL_P") || linetoemit.contains("H_SWASH_PLATE"))
+                                // Name field is not always on same Index. So first search for the right position...
+                                int nameIndex = 0;
+                                for (int i = 0; i < valuepairlist.size(); ++i)
+                                {
+                                    if (valuepairlist[i].first == "Name")
+                                    {
+                                        nameIndex = i;
+                                        break;
+                                    }
+                                }
+                                //...and then use it to check the values.
+                                if (valuepairlist[nameIndex].second == "RATE_RLL_P" || valuepairlist[nameIndex].second == "H_SWASH_PLATE")
                                 {
                                     m_loadedLogType = MAV_TYPE_QUADROTOR;
                                 }
-                                if (linetoemit.contains("PTCH2SRV_P"))
+                                else if (valuepairlist[nameIndex].second == "PTCH2SRV_P")
                                 {
                                     m_loadedLogType = MAV_TYPE_FIXED_WING;
                                 }
-                                if (linetoemit.contains("SKID_STEER_OUT"))
+                                else if (valuepairlist[nameIndex].second == "SKID_STEER_OUT")
                                 {
                                     m_loadedLogType = MAV_TYPE_GROUND_ROVER;
                                 }
@@ -372,6 +377,7 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
                         else
                         {
                             QLOG_DEBUG() << "AP2DataPlotThread::run(): No query available for param category" << name;
+                            m_errorCount++;
                         }
                     }
 
@@ -386,6 +392,7 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
         if (nonpacketcounter > 0)
         {
             QLOG_DEBUG() << "AP2DataPlotThread::run(): Non packet bytes found in log file" << nonpacketcounter << "bytes filtered out. This may be a corrupt log";
+            m_errorCount++;
         }
     }
     if (!m_dataModel->endTransaction())
@@ -394,6 +401,7 @@ void AP2DataPlotThread::loadBinaryLog(QFile &logfile)
         return;
     }
 }
+
 void AP2DataPlotThread::loadAsciiLog(QFile &logfile)
 {
     m_loadedLogType = MAV_TYPE_GENERIC;

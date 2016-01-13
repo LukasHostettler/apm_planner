@@ -69,10 +69,12 @@ signals:
 private slots:
 
 private: //helpers
+    typedef QSharedPointer<QSqlQuery> queryPtr;              /// Shared pointer type for QSqlQueries
+
     bool createFMTTable();
-    bool createFMTInsert(QSqlQuery *query);
+    bool createFMTInsert(queryPtr &query);
     bool createIndexTable();
-    bool createIndexInsert(QSqlQuery *query);
+    bool createIndexInsert(queryPtr &query);
     void setError(QString error);
     QString makeCreateTableString(QString tablename, QString formatstr,QStringList variablestr);
     QString makeInsertTableString(QString tablename, QStringList variablestr);
@@ -81,13 +83,16 @@ private:
     QString m_error;
     QString m_databaseName;
     QSqlDatabase m_sharedDb;
-    QMap<int,QPair<quint64,QString> > m_rowToTableMap;
+    QVector<QPair<quint64,QString> > m_rowIndexToDBIndex;   /// stores relation between Table row index
+                                                            /// and DB index and DB table name
     QMap<QString,QList<QString> > m_headerStringList;
     QList<QString> m_currentHeaderItems;
     QList<QList<QString> > m_fmtStringList;
-    QMap<QString,QString> m_msgNameToInsertQuery;
 
-    int m_rowCount;
+    QMap<QString,queryPtr> m_msgNameToPrepearedInsertQuery;  /// Map holding prepared insert queries to speed up inserts
+    QMap<QString,queryPtr> m_msgNameToPrepearedSelectQuery;  /// Map holding prepared select queries to speed up selects
+
+    int m_rowCount;         /// Stores the number of rows held in model.
     int m_columnCount;
     int m_currentRow;
     int m_fmtIndex;
@@ -95,8 +100,14 @@ private:
     quint64 m_firstIndex;
     quint64 m_lastIndex;
 
-    QSqlQuery *m_indexinsertquery;
-    QSqlQuery *m_fmtInsertQuery;
+    queryPtr m_indexinsertquery;
+    queryPtr m_fmtInsertQuery;
+
+    mutable QVector<QVariant> m_prefetchedRowData;  /// holds the cached data used in data(...) method
+    mutable QModelIndex m_prefetchedRowIndex;       /// Stores the index which which is actually in cache
+
+
+
 
 
 };
